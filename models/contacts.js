@@ -1,20 +1,23 @@
-const fs = require('fs');
-const path = require('path');
+const mongoose = require('mongoose');
+const Schema = mongoose.Schema;
 
-const contactsPath = path.join(__dirname, 'contacts.json');
+const contactSchema = new Schema({
+  name: {
+    type: String,
+    required: [true, 'Set name for contact'],
+  },
+  email: {
+    type: String,
+  },
+  phone: {
+    type: String,
+  },
+  favorite: {
+    type: Boolean,
+    default: false,
+  },
+});
 
-function getContacts() {
-  try {
-    const contactsData = fs.readFileSync(contactsPath, 'utf8');
-    const contacts = JSON.parse(contactsData);
-    return contacts;
-  } catch (error) {
-    console.error('Error reading contacts file:', error);
-    return [];
-  }
-}
+const Contact = mongoose.model('Contact', contactSchema);
 
-module.exports = {
-  getContacts,
-  // inne funkcje do manipulacji danymi kontaktowymi, jak dodawanie, usuwanie, aktualizacja, itp.
-};
+module.exports = Contact;
