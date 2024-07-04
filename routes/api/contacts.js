@@ -1,24 +1,94 @@
-const express = require("express");
+const express = require('express');
 const router = express.Router();
-const fs = require("fs");
-const path = require("path");
+const Contact = require('../../models/contacts'); // Import modelu Contact
 
-let contactsPath = "";
 
-router.use((req, res, next) => {
-  if (!contactsPath) {
-    contactsPath = req.app.locals.contactsPath;
+// GET /api/contacts - Pobierz wszystkie kontakty
+router.get('/', async (req, res) => {
+  try {
+    const contacts = await Contact.find();
+    res.json(contacts);
+  } catch (error) {
+    console.error('Error fetching contacts:', error);
+    res.status(500).json({ message: 'Server error: Error fetching contacts' });
   }
-  next();
 });
 
-router.get("/", (req, res) => {
-  fs.readFile(contactsPath, "utf8", (err, data) => {
-    if (err) {
-      return res.status(500).json({ message: err.message });
+// GET /api/contacts/:id - Pobierz kontakt po ID
+router.get('/:id', async (req, res) => {
+  const contactId = req.params.id;
+
+  try {
+    const contact = await Contact.findById(contactId);
+
+    if (!contact) {
+      return res.status(404).json({ message: 'Contact not found' });
     }
-    res.json(JSON.parse(data));
-  });
+
+    res.json(contact);
+  } catch (error) {
+    console.error('Error fetching contact by ID:', error);
+    res.status(500).json({ message: 'Server error: Error fetching contact by ID' });
+  }
+});
+
+// POST /api/contacts - Dodaj nowy kontakt
+router.post('/', async (req, res) => {
+  const { name, email, phone, favorite } = req.body;
+
+  if (!name || !email || !phone) {
+    return res.status(400).json({ message: 'Missing required fields' });
+  }
+
+  try {
+    const newContact = new Contact({ name, email, phone, favorite });
+    const savedContact = await newContact.save();
+    res.status(201).json(savedContact);
+  } catch (error) {
+    console.error('Error saving new contact:', error);
+    res.status(500).json({ message: 'Server error: Error saving new contact' });
+  }
+});
+
+// DELETE /api/contacts/:id - Usuń kontakt po ID
+router.delete('/:id', async (req, res) => {
+  const contactId = req.params.id;
+
+  try {
+    const deletedContact = await Contact.findByIdAndDelete(contactId);
+
+    if (!deletedContact) {
+      return res.status(404).json({ message: 'Contact not found' });
+    }
+
+    res.json({ message: 'Contact deleted' });
+  } catch (error) {
+    console.error('Error deleting contact:', error);
+    res.status(500).json({ message: 'Server error: Error deleting contact' });
+  }
+});
+
+// PATCH /api/contacts/:id/favorite - Aktualizuj status ulubionego kontaktu
+router.patch('/:id/favorite', async (req, res) => {
+  const contactId = req.params.id;
+  const { favorite } = req.body;
+
+  if (favorite === undefined) {
+    return res.status(400).json({ message: 'Missing field favorite' });
+  }
+
+  try {
+    const updatedContact = await Contact.findByIdAndUpdate(contactId, { favorite }, { new: true });
+
+    if (!updatedContact) {
+      return res.status(404).json({ message: 'Contact not found' });
+    }
+
+    res.json(updatedContact);
+  } catch (error) {
+    console.error('Error updating contact favorite status:', error);
+    res.status(500).json({ message: 'Server error: Error updating contact favorite status' });
+  }
 });
 
 module.exports = router;
